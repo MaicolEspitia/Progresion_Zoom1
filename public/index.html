@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zoom Meeting - Unirse a reunión</title>
+    <link rel="icon" href="data:,">
+    <link rel="stylesheet" href="https://source.zoom.us/5.1.2/css/bootstrap.css">
+    <link rel="stylesheet" href="https://source.zoom.us/5.1.2/css/react-select.css">
+</head>
+<body>
+    <div style="position:fixed;top:10px;right:10px;z-index:9999;">
+        <a href="/debug" style="background:#0066cc;color:white;padding:8px 12px;text-decoration:none;border-radius:6px;font-size:12px;">🔧 Diagnóstico</a>
+    </div>
+    <div id="zmmtg-root"></div>
+
+    <!-- Zoom Meeting SDK 5.1.2 - CDN oficial -->
+    <script src="https://source.zoom.us/5.1.2/lib/vendor/react.min.js"></script>
+    <script src="https://source.zoom.us/5.1.2/lib/vendor/react-dom.min.js"></script>
+    <script src="https://source.zoom.us/5.1.2/lib/vendor/redux.min.js"></script>
+    <script src="https://source.zoom.us/5.1.2/lib/vendor/redux-thunk.min.js"></script>
+    <script src="https://source.zoom.us/5.1.2/zoom-meeting-5.1.2.min.js"></script>
+    <script>
+        (function() {
+            var getSignatureUrl = '/.netlify/functions/get_signature';
+
+            function initZoom() {
+                if (typeof ZoomMtg === 'undefined') {
+                    console.error('Zoom SDK no cargó. Esperando...');
+                    setTimeout(initZoom, 500);
+                    return;
+                }
+                ZoomMtg.setZoomJSLib('https://source.zoom.us/5.1.2/lib', '/av');
+                ZoomMtg.preLoadWasm();
+                ZoomMtg.prepareWebSDK();
+                startMeeting();
+            }
+
+            async function startMeeting() {
+                const meetingNumber = "85424538919";
+                const meetingPassword = "6CXbiV";
+
+                try {
+                    const response = await fetch(getSignatureUrl, {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({meetingNumber: meetingNumber, role: 0})
+                    });
+                    const data = await response.json();
+
+                    if (!data.signature) {
+                        console.error('Error al obtener firma:', data);
+                        alert('Error: No se pudo obtener la firma. Revisa la consola.');
+                        return;
+                    }
+
+                    ZoomMtg.init({
+                        leaveUrl: window.location.origin + '/',
+                        webEndpoint: 'zoom.us',
+                        isSupportAV: true,
+                        success: function() {
+                            ZoomMtg.join({
+                                signature: data.signature,
+                                meetingNumber: meetingNumber,
+                                userName: 'Usuario Demo',
+                                passWord: meetingPassword,
+                                success: function() { console.log('Unido a la reunión'); },
+                                error: function(err) {
+                                    console.error('Error al unirse:', err);
+                                    if (err.errorMessage && err.errorMessage.includes('Signature')) {
+                                        alert('Firma inválida. Añade tu dominio en Zoom Marketplace → Surface → Domain Allow List:\n' + window.location.hostname);
+                                    }
+                                }
+                            });
+                        },
+                        error: function(err) {
+                            console.error('Error init:', err);
+                            alert('Error al inicializar Zoom: ' + JSON.stringify(err));
+                        }
+                    });
+                } catch (err) {
+                    console.error('Error:', err);
+                    alert('Error de conexión: ' + err.message);
+                }
+            }
+
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', function() {
+                    setTimeout(initZoom, 100);
+                });
+            } else {
+                setTimeout(initZoom, 100);
+            }
+        })();
+    </script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+[build]
+  publish = "public"
+  functions = "netlify/functions"
+  command = ""
+
+[build.environment]
+  NODE_VERSION = "18"
+
+# Redirigir /debug a debug.html para que el enlace funcione
+[[redirects]]
+  from = "/debug"
+  to = "/debug.html"
+  status = 200

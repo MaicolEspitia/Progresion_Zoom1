@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diagnóstico Zoom Meeting SDK</title>
+    <style>
+        body { font-family: system-ui; max-width: 700px; margin: 40px auto; padding: 20px; }
+        .box { background: #f5f5f5; padding: 15px; margin: 15px 0; border-radius: 8px; }
+        .error { background: #ffe0e0; }
+        .ok { background: #e0ffe0; }
+        pre { overflow-x: auto; font-size: 12px; }
+        button { padding: 10px 20px; cursor: pointer; margin: 5px; }
+        a { color: #0066cc; }
+    </style>
+</head>
+<body>
+    <h1>Diagnóstico Zoom Meeting SDK</h1>
+
+    <div class="box">
+        <h3>1. Tu dominio actual</h3>
+        <p><strong id="domain"></strong></p>
+        <p>Este dominio debe estar en Zoom Marketplace → Surface → Domain Allow List</p>
+    </div>
+
+    <div class="box" id="signature-box">
+        <h3>2. Verificación de firma</h3>
+        <button onclick="testSignature()">Generar y verificar firma</button>
+        <div id="signature-result"></div>
+    </div>
+
+    <div class="box">
+        <h3>3. Checklist para "Firma inválida" (Netlify)</h3>
+        <ul>
+            <li><strong>Tipo de app:</strong> Debe ser "Meeting SDK" o tener Meeting SDK habilitado. NO uses credenciales de OAuth o Server-to-Server.</li>
+            <li><strong>Dominio:</strong> En Zoom Marketplace → tu app → Surface → Domain Allow List añade tu dominio de Netlify (ej: <code>tu-sitio.netlify.app</code>) sin https://</li>
+            <li><strong>Home URL:</strong> Si lo pide, usa: <code>https://tu-dominio.netlify.app</code></li>
+            <li><strong>Revisión:</strong> Si el dominio dice "requires review", añade una razón (ej: "Meeting SDK en producción").</li>
+            <li><strong>Reunión:</strong> La reunión debe estar iniciada (el host en la reunión) o programada.</li>
+        </ul>
+    </div>
+
+    <div class="box">
+        <h3>4. Variables de entorno en Netlify</h3>
+        <p>Opcional: en Netlify → Site settings → Environment variables puedes definir <code>ZOOM_SDK_KEY</code> y <code>ZOOM_SDK_SECRET</code> para no tener las claves en el código.</p>
+    </div>
+
+    <p><a href="/">← Volver a unirse a la reunión</a></p>
+
+    <script>
+        document.getElementById('domain').textContent = window.location.origin;
+
+        async function testSignature() {
+            const result = document.getElementById('signature-result');
+            result.innerHTML = '<p>Probando...</p>';
+            try {
+                const res = await fetch('/.netlify/functions/get_signature', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({meetingNumber: '85424538919', role: 0})
+                });
+                const data = await res.json();
+                if (data.signature) {
+                    const payload = JSON.parse(atob(data.signature.split('.')[1]));
+                    result.innerHTML = `
+                        <p class="ok">✓ Firma generada correctamente</p>
+                        <p><strong>Payload del JWT:</strong></p>
+                        <pre>${JSON.stringify(payload, null, 2)}</pre>
+                        <p>Verifica en <a href="https://jwt.io" target="_blank">jwt.io</a> pegando la firma y tu Client Secret.</p>
+                    `;
+                } else {
+                    result.innerHTML = '<p class="error">✗ Error: ' + JSON.stringify(data) + '</p>';
+                }
+            } catch (e) {
+                result.innerHTML = '<p class="error">✗ Error: ' + e.message + '</p>';
+            }
+        }
+    </script>
+</body>
+</html>

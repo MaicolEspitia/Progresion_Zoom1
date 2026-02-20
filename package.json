@@ -1,0 +1,9 @@
+{
+  "name": "zoom-meeting-netlify",
+  "version": "1.0.0",
+  "description": "Zoom Meeting SDK en web - desplegado en Netlify",
+  "private": true,
+  "dependencies": {
+    "jsonwebtoken": "^9.0.2"
+  }
+}
